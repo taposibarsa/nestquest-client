@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function Navbar() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
@@ -30,6 +31,15 @@ export function Navbar() {
   const registerBtnClass = isRegister
     ? "rounded-lg bg-amber px-3 py-1.5 text-sm font-semibold text-navy"
     : "rounded-lg border border-amber px-3 py-1.5 text-sm font-semibold text-amber hover:bg-amber/10";
+
+  const userChip = user ? (
+    <div className="flex min-w-0 items-center gap-2" title={user.email}>
+      <UserAvatar name={user.name} imageUrl={user.profileImage} size="sm" />
+      <span className="max-w-[8rem] truncate text-sm font-medium text-white/90">
+        {user.name}
+      </span>
+    </div>
+  ) : null;
 
   return (
     <header className="sticky top-0 z-50 bg-navy text-white shadow-md">
@@ -57,15 +67,18 @@ export function Navbar() {
           </Link>
           {!isLoading && isAuthenticated ? (
             <>
+              {user?.role === "admin" ? (
+                <Link href="/admin" className={linkClass("/admin")}>
+                  Admin
+                </Link>
+              ) : null}
               <Link href="/items/add" className={linkClass("/items/add")}>
                 Add Property
               </Link>
               <Link href="/items/manage" className={linkClass("/items/manage")}>
                 My Listings
               </Link>
-              <span className="max-w-[8rem] truncate text-sm text-white/80">
-                {user?.name}
-              </span>
+              {userChip}
               <button
                 type="button"
                 onClick={logout}
@@ -77,7 +90,11 @@ export function Navbar() {
             </>
           ) : !isLoading ? (
             <>
-              <Link href="/login" className={loginBtnClass} aria-current={isLogin ? "page" : undefined}>
+              <Link
+                href="/login"
+                className={loginBtnClass}
+                aria-current={isLogin ? "page" : undefined}
+              >
                 Login
               </Link>
               <Link
@@ -133,6 +150,15 @@ export function Navbar() {
           </Link>
           {!isLoading && isAuthenticated ? (
             <>
+              {user?.role === "admin" ? (
+                <Link
+                  href="/admin"
+                  onClick={() => setOpen(false)}
+                  className={linkClass("/admin")}
+                >
+                  Admin
+                </Link>
+              ) : null}
               <Link
                 href="/items/add"
                 onClick={() => setOpen(false)}
@@ -147,7 +173,7 @@ export function Navbar() {
               >
                 My Listings
               </Link>
-              <p className="text-sm text-white/80">{user?.name}</p>
+              <div className="flex items-center gap-2 py-1">{userChip}</div>
               <button
                 type="button"
                 onClick={() => {

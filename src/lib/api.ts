@@ -154,9 +154,14 @@ export type PropertyDetailResponse = {
 };
 
 export async function getPropertyById(
-  id: string
+  id: string,
+  token?: string | null
 ): Promise<PropertyDetailResponse> {
-  return request<PropertyDetailResponse>(`/api/properties/${id}`);
+  return request<PropertyDetailResponse>(
+    `/api/properties/${id}`,
+    { method: "GET" },
+    token
+  );
 }
 
 export async function getReviews(propertyId: string): Promise<Review[]> {
@@ -247,4 +252,66 @@ export async function submitContact(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export type AdminProperty = Property & {
+  ownerName: string;
+  ownerEmail: string;
+};
+
+export type AdminPropertiesResponse = {
+  data: AdminProperty[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export async function getAdminProperties(
+  token: string,
+  params: {
+    status?: "pending" | "approved" | "rejected";
+    page?: number;
+    limit?: number;
+  } = {}
+): Promise<AdminPropertiesResponse> {
+  const qs = new URLSearchParams();
+  qs.set("status", params.status ?? "pending");
+  qs.set("page", String(params.page ?? 1));
+  qs.set("limit", String(params.limit ?? 20));
+  return request<AdminPropertiesResponse>(
+    `/api/admin/properties?${qs.toString()}`,
+    { method: "GET" },
+    token
+  );
+}
+
+export async function moderateProperty(
+  token: string,
+  id: string,
+  action: "approve" | "reject"
+): Promise<Property> {
+  return request<Property>(
+    `/api/admin/properties/${id}/moderate`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ action }),
+    },
+    token
+  );
+}
+
+export async function setPropertyFeatured(
+  token: string,
+  id: string,
+  featured: boolean
+): Promise<Property> {
+  return request<Property>(
+    `/api/admin/properties/${id}/featured`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ featured }),
+    },
+    token
+  );
 }

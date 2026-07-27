@@ -42,6 +42,7 @@ function ImagePreview({ url }: { url?: string }) {
     <img
       src={trimmed}
       alt="Preview"
+      referrerPolicy="no-referrer"
       onLoad={() => setOk(true)}
       onError={() => setFailed(true)}
       className={`mt-2 h-28 w-full rounded-lg object-cover ${ok ? "block" : "hidden"}`}
@@ -160,7 +161,9 @@ export function AddPropertyForm() {
         },
       });
 
-      toast.success("Your property has been listed!");
+      toast.success(
+        "Listing submitted for approval. It will go live after an admin reviews it."
+      );
       router.push("/items/manage");
     } catch (err) {
       const message =
@@ -223,7 +226,7 @@ export function AddPropertyForm() {
             {...register("fullDescription")}
           />
           <p className="mt-1 text-xs text-cool-gray">
-            {fullDescription.length} characters (min 100)
+            {fullDescription.split(/\s+/).filter(Boolean).length} words (min 15)
           </p>
           {errors.fullDescription ? (
             <p className={errorClass}>{errors.fullDescription.message}</p>
@@ -452,7 +455,7 @@ export function AddPropertyForm() {
       <section className={sectionClass}>
         <h2 className="font-display text-xl font-semibold text-navy">Images</h2>
         <p className="text-xs text-cool-gray">
-          Use Imgbb or Cloudinary to upload images and paste the URL here.
+          Paste HTTPS image URLs from Pixabay, Unsplash, Imgbb, or Cloudinary.
         </p>
         {(
           [
@@ -465,7 +468,7 @@ export function AddPropertyForm() {
             <label className={labelClass} htmlFor={name}>
               {label}
             </label>
-            <input id={name} className={inputClass} {...register(name)} />
+            <input id={name} className={inputClass} placeholder="https://cdn.pixabay.com/..." {...register(name)} />
             {errors[name] ? (
               <p className={errorClass}>{errors[name]?.message}</p>
             ) : null}

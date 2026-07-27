@@ -10,6 +10,7 @@ export type PropertyType =
   | "land"
   | "studio";
 export type PropertyStatus = "available" | "sold" | "rented";
+export type ModerationStatus = "pending" | "approved" | "rejected";
 export type PropertySort =
   | "newest"
   | "price_asc"
@@ -72,6 +73,9 @@ export interface Property {
   averageRating: number;
   totalReviews: number;
   featured: boolean;
+  moderationStatus?: ModerationStatus;
+  moderatedAt?: string;
+  moderatedBy?: string;
   createdAt: string;
   updatedAt: string;
 }

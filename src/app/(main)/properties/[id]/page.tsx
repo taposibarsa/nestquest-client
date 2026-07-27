@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { getPropertyById } from "@/lib/api";
 import { PropertyDetailView } from "@/components/detail/PropertyDetailView";
+import { PropertyDetailClient } from "@/components/detail/PropertyDetailClient";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -34,7 +34,8 @@ export default async function PropertyDetailPage({ params }: Props) {
     return <PropertyDetailView property={property} reviews={reviews} />;
   } catch (err) {
     if (isMissingProperty(err)) {
-      notFound();
+      // Owner/admin may still open pending/rejected with JWT (client fetch).
+      return <PropertyDetailClient id={id} />;
     }
     throw err;
   }

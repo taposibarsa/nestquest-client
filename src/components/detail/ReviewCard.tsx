@@ -24,6 +24,7 @@ export function ReviewCard({ review }: { review: Review }) {
           <RemoteImg
             src={review.userImage}
             alt={review.userName}
+            referrerPolicy="no-referrer"
             className="h-10 w-10 rounded-full object-cover"
           />
         ) : (

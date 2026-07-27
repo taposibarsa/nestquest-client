@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 
-type BadgeVariant = "amber" | "navy" | "sage" | "gray";
+type BadgeVariant = "amber" | "navy" | "sage" | "gray" | "danger";
 
 const variants: Record<BadgeVariant, string> = {
   amber: "bg-amber/20 text-navy",
   navy: "bg-navy text-white",
   sage: "bg-sage/15 text-sage",
   gray: "bg-cool-gray/15 text-cool-gray",
+  danger: "bg-red-100 text-red-700",
 };
 
 export function Badge({

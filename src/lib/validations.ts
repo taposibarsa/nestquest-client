@@ -1,5 +1,43 @@
 import { z } from "zod";
 
+/** Hosts allowed for profile / listing image URL fields. */
+const ALLOWED_IMAGE_HOST_SUFFIXES = [
+  "cdn.pixabay.com",
+  "pixabay.com",
+  "images.unsplash.com",
+  "plus.unsplash.com",
+  "lh3.googleusercontent.com",
+  "lh4.googleusercontent.com",
+  "lh5.googleusercontent.com",
+  "lh6.googleusercontent.com",
+  "googleusercontent.com",
+  "i.ibb.co",
+  "ibb.co",
+  "imgbb.com",
+  "res.cloudinary.com",
+  "cloudinary.com",
+] as const;
+
+const IMAGE_URL_HINT =
+  "Use a Pixabay, Unsplash, Imgbb, Cloudinary, or Google photo HTTPS URL";
+
+function isAllowedImageHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return ALLOWED_IMAGE_HOST_SUFFIXES.some(
+    (allowed) => host === allowed || host.endsWith(`.${allowed}`)
+  );
+}
+
+export function isAllowedImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    return isAllowedImageHost(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export const loginSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -17,12 +55,8 @@ export const registerSchema = z
       .string()
       .optional()
       .refine(
-        (val) =>
-          !val ||
-          val.trim() === "" ||
-          val.startsWith("http://") ||
-          val.startsWith("https://"),
-        "Profile photo must be a valid http(s) URL"
+        (val) => !val || val.trim() === "" || isAllowedImageUrl(val),
+        IMAGE_URL_HINT
       ),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -35,10 +69,7 @@ export type RegisterFormValues = z.infer<typeof registerSchema>;
 const httpUrl = z
   .string()
   .trim()
-  .refine(
-    (val) => val.startsWith("http://") || val.startsWith("https://"),
-    "Must be a valid http(s) URL"
-  );
+  .refine((val) => isAllowedImageUrl(val), IMAGE_URL_HINT);
 
 const optionalHttpUrl = z
   .string()
@@ -46,11 +77,8 @@ const optionalHttpUrl = z
   .transform((val) => (val === "" ? undefined : val))
   .optional()
   .refine(
-    (val) =>
-      val === undefined ||
-      val.startsWith("http://") ||
-      val.startsWith("https://"),
-    "Must be a valid http(s) URL"
+    (val) => val === undefined || isAllowedImageUrl(val),
+    IMAGE_URL_HINT
   );
 
 export const PROPERTY_AMENITIES = [
@@ -90,7 +118,10 @@ export const propertySchema = z
     fullDescription: z
       .string()
       .trim()
-      .min(100, "Full description must be at least 100 characters"),
+      .refine(
+        (val) => val.split(/\s+/).filter(Boolean).length >= 15,
+        "Full description must be at least 15 words"
+      ),
     propertyType: z.enum([
       "apartment",
       "house",

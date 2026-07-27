@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import toast from "react-hot-toast";
 import { Home } from "lucide-react";
-import type { Property } from "@/types";
+import type { ModerationStatus, Property } from "@/types";
 import { ApiError, deleteProperty, getUserProperties } from "@/lib/api";
 import { formatPriceLabel } from "@/lib/format";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,22 @@ function listedOn(iso: string): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function moderationOf(p: Property): ModerationStatus {
+  return p.moderationStatus ?? "approved";
+}
+
+function ModerationBadge({ status }: { status: ModerationStatus }) {
+  const variant =
+    status === "approved" ? "sage" : status === "pending" ? "amber" : "danger";
+  const label =
+    status === "approved"
+      ? "Approved"
+      : status === "pending"
+        ? "Pending"
+        : "Rejected";
+  return <Badge variant={variant}>{label}</Badge>;
 }
 
 export function ManageProperties() {
@@ -81,7 +97,7 @@ export function ManageProperties() {
     return (
       <EmptyState
         title="You haven't listed any properties yet."
-        description="Create your first listing and it will show up here."
+        description="Create your first listing and it will show up here as pending until an admin approves it."
         icon={<Home className="h-12 w-12" strokeWidth={1.25} />}
         action={
           <Link
@@ -98,128 +114,147 @@ export function ManageProperties() {
   return (
     <>
       <p className="mb-5 rounded-xl border border-navy/10 bg-white px-4 py-3 text-sm font-medium text-navy shadow-sm">
-        You have {properties.length} active listing
-        {properties.length === 1 ? "" : "s"}
+        You have {properties.length} listing
+        {properties.length === 1 ? "" : "s"}. Pending listings stay private
+        until an admin approves them.
       </p>
 
       <div className="hidden overflow-x-auto rounded-xl border border-navy/10 bg-white shadow-sm md:block">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[780px] text-left text-sm">
           <thead className="border-b border-navy/10 bg-off-white/80 text-cool-gray">
             <tr>
               <th className="px-4 py-3 font-medium">#</th>
               <th className="px-4 py-3 font-medium">Property</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Price</th>
-              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Approval</th>
               <th className="px-4 py-3 font-medium">Listed On</th>
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {properties.map((p, i) => (
-              <tr key={p._id} className="border-b border-navy/5 last:border-0">
-                <td className="px-4 py-3 text-cool-gray">{i + 1}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-navy/5">
-                      {p.images[0] ? (
-                        <RemoteImg
-                          src={p.images[0]}
-                          alt={p.title}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : null}
+            {properties.map((p, i) => {
+              const mod = moderationOf(p);
+              return (
+                <tr key={p._id} className="border-b border-navy/5 last:border-0">
+                  <td className="px-4 py-3 text-cool-gray">{i + 1}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-16 shrink-0 overflow-hidden rounded-md bg-navy/5">
+                        {p.images[0] ? (
+                          <RemoteImg
+                            src={p.images[0]}
+                            alt={p.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div>
+                        <span className="font-medium text-navy line-clamp-2">
+                          {p.title}
+                        </span>
+                        {mod === "pending" ? (
+                          <p className="mt-0.5 text-xs text-cool-gray">
+                            Waiting for admin approval
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <span className="font-medium text-navy line-clamp-2">
-                      {p.title}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-4 py-3 capitalize">{p.propertyType}</td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {formatPriceLabel(p.price, p.priceType, p.rentPeriod)}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant="sage">{p.status}</Badge>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-cool-gray">
-                  {listedOn(p.createdAt)}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <a
-                      href={`/properties/${p._id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex rounded-lg border border-navy/30 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-navy/5"
-                    >
-                      View
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => setPendingDelete(p)}
-                      className="inline-flex rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-4 py-3 capitalize">{p.propertyType}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {formatPriceLabel(p.price, p.priceType, p.rentPeriod)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <ModerationBadge status={mod} />
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-cool-gray">
+                    {listedOn(p.createdAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={`/properties/${p._id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex rounded-lg border border-navy/30 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-navy/5"
+                      >
+                        View
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setPendingDelete(p)}
+                        className="inline-flex rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <div className="space-y-4 md:hidden">
-        {properties.map((p) => (
-          <article
-            key={p._id}
-            className="rounded-xl border border-navy/10 bg-white p-4 shadow-sm"
-          >
-            <div className="flex gap-3">
-              <div className="h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-navy/5">
-                {p.images[0] ? (
-                  <RemoteImg
-                    src={p.images[0]}
-                    alt={p.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : null}
+        {properties.map((p) => {
+          const mod = moderationOf(p);
+          return (
+            <article
+              key={p._id}
+              className="rounded-xl border border-navy/10 bg-white p-4 shadow-sm"
+            >
+              <div className="flex gap-3">
+                <div className="h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-navy/5">
+                  {p.images[0] ? (
+                    <RemoteImg
+                      src={p.images[0]}
+                      alt={p.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-navy line-clamp-2">
+                    {p.title}
+                  </h3>
+                  <p className="mt-1 text-sm capitalize text-cool-gray">
+                    {p.propertyType} · {listedOn(p.createdAt)}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-navy">
+                    {formatPriceLabel(p.price, p.priceType, p.rentPeriod)}
+                  </p>
+                  <div className="mt-2">
+                    <ModerationBadge status={mod} />
+                  </div>
+                  {mod === "pending" ? (
+                    <p className="mt-1 text-xs text-cool-gray">
+                      Waiting for admin approval
+                    </p>
+                  ) : null}
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-navy line-clamp-2">
-                  {p.title}
-                </h3>
-                <p className="mt-1 text-sm capitalize text-cool-gray">
-                  {p.propertyType} · {listedOn(p.createdAt)}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-navy">
-                  {formatPriceLabel(p.price, p.priceType, p.rentPeriod)}
-                </p>
-                <Badge variant="sage" className="mt-2">
-                  {p.status}
-                </Badge>
+              <div className="mt-3 flex gap-2">
+                <a
+                  href={`/properties/${p._id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex flex-1 items-center justify-center rounded-lg border border-navy/30 px-3 py-2 text-sm font-semibold text-navy"
+                >
+                  View
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPendingDelete(p)}
+                  className="inline-flex flex-1 items-center justify-center rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-600"
+                >
+                  Delete
+                </button>
               </div>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <a
-                href={`/properties/${p._id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center rounded-lg border border-navy/30 px-3 py-2 text-sm font-semibold text-navy"
-              >
-                View
-              </a>
-              <button
-                type="button"
-                onClick={() => setPendingDelete(p)}
-                className="inline-flex flex-1 items-center justify-center rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
       <Modal
